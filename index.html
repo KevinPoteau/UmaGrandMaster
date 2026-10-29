@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Grand Masters Career Sim</title>
+<meta name="description" content="Learn the Umamusume Grand Masters scenario: a turn-by-turn career simulator with Oguri Cap and a fixed MLB deck.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;800&family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700&display=swap">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="viewport"><div id="stage">
+ <div class="screen" id="screen">
+  <div class="top">
+    <div class="date"><div class="y" id="dy"></div><div class="d" id="dd"></div></div>
+    <div class="icons">
+      <button class="ib" id="bHelp" type="button" aria-label="How this career works" title="How it works"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7"/><path d="M12 17h.01"/></svg></button>
+      <button class="ib" id="bDeck" type="button" aria-label="Deck and bonds" title="Deck"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="12" height="15" rx="2"/><path d="M8 3h10a2 2 0 0 1 2 2v13"/></svg></button>
+      <button class="ib" id="bLog" type="button" aria-label="Tips, recent turns and calendar" title="Tips and calendar"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></button>
+      <button class="ib" id="bNew" type="button" aria-label="New career" title="New career"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.3-5.7"/><path d="M4 4v4h4"/></svg></button>
+    </div>
+  </div>
+  <div class="goal" id="goalBox" role="button" tabindex="0" title="Open the career calendar"><div class="gl">GOAL</div><div class="gt"><b id="goalName"></b><span id="goalSub"></span></div><div class="gc"><b id="goalN"></b><span>TURNS</span></div></div>
+  <div class="en"><span class="el">Energy</span><div class="bar"><i id="enCost" class="cost" style="width:0"></i><i id="enBar"></i><span id="enTxt"></span></div><span class="mood" id="mood"></span></div>
+  <div class="main">
+    <div class="scen">
+      <div class="box kt" id="kt"></div>
+      <button class="wis" id="bWis" type="button"></button>
+      <button class="box gods" id="gods" type="button" aria-label="Goddess levels and effects"></button>
+    </div>
+    <div class="center">
+      <div class="plate"><img id="photo" alt="Oguri Cap, the racehorse" hidden><svg id="silh" viewBox="0 0 200 220" aria-hidden="true"><defs><linearGradient id="hg" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#8e959e"/><stop offset="1" stop-color="#4a5058"/></linearGradient></defs><ellipse cx="100" cy="206" rx="70" ry="10" fill="#26302a"/><path d="M100 18c-30 0-48 22-48 52 0 18 6 30 6 44l-18 70c-2 10 6 18 16 18h88c10 0 18-8 16-18l-18-70c0-14 6-26 6-44 0-30-18-52-48-52z" fill="url(#hg)"/><path d="M70 40c4-14 16-24 30-24s26 10 30 24c-10-6-20-8-30-8s-20 2-30 8z" fill="#c9cdd2"/><circle cx="100" cy="128" r="22" fill="none" stroke="#c9cdd2" stroke-width="7" stroke-dasharray="104 40" transform="rotate(115 100 128)"/></svg></div>
+      <div class="badges" id="badges"></div>
+      <div class="nameplate"><b>Oguri Cap</b><span id="uniq"></span></div>
+      <button class="last" id="last" type="button"></button>
+    </div>
+    <div class="supp" id="supp"></div>
+  </div>
+  <div class="gainrow" id="gainrow"></div>
+  <div class="stats" id="stats"></div>
+  <div class="bottom" id="bottom"></div>
+  <div id="modalRoot"></div>
+  <div id="popRoot"></div>
+ </div>
+ <aside class="side" id="side" hidden>
+   <div class="sidetop">
+     <div class="sh">Recent turns</div>
+     <div class="recent" id="sideRecent"></div>
+     <div class="sh">Scenario tips <small>updated every turn</small></div>
+     <div class="tips" id="sideTips"></div>
+   </div>
+   <div class="sidecal">
+     <div class="sh">Career calendar <button class="qm" type="button" data-help="calendar" aria-label="About the calendar">?</button></div>
+     <div class="cal" id="sideCal"></div>
+     <div class="upc" id="sideUpc"></div>
+   </div>
+ </aside>
+</div></div>
+
+<script src="js/score-table.js"></script>
+<script src="js/data.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/ui.js"></script>
+</body>
+</html>
