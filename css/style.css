@@ -225,3 +225,6 @@ button.gods:hover{border-color:var(--accent)}
 .upc div{display:grid;grid-template-columns:1fr auto;gap:8px;padding:3px 0;border-bottom:1px solid var(--line)}
 .upc span{color:var(--muted);font-weight:700}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+.bd.cond.bad{border-color:#ff6b6b;color:#ff8a8a}.bd.cond.good{border-color:var(--accent);color:var(--accent)}
+.hb.sick:not(:disabled){border-color:#ff6b6b}.hb.sick small{color:#ff8a8a}
+.hb.risky small{color:var(--pow)}

@@ -10,7 +10,7 @@ const TBV=[
  [[0,4,9,0,0,5,-20],[0,4,10,0,0,5,-22],[0,4,11,0,0,5,-23],[0,5,12,0,0,5,-25],[0,6,13,0,0,5,-26],[0,7,14,0,0,5,-27]],
  [[2,0,3,9,0,5,-20],[2,0,3,10,0,5,-22],[2,0,3,11,0,5,-23],[3,0,3,12,0,5,-25],[3,0,4,13,0,5,-26],[4,0,5,14,0,5,-27]],
  [[2,0,0,0,8,5,5],[2,0,0,0,9,5,5],[2,0,0,0,10,5,5],[3,0,0,0,11,5,5],[4,0,0,0,12,5,5],[5,0,0,0,13,5,5]]];
-const VENUS_TRAIN=[0,5,8,11,13,15], RED_COST=[0,10,15,18,20,23], BLUE_HINT=[0,20,25,30,33,35], YEL_EVENT=[0,10,15,20,23,25], YEL_CHAIN=[0,20,40,50,80,90];
+const VENUS_TRAIN=[0,5,8,11,13,15], RED_COST=[0,10,15,18,20,23], BLUE_HINT=[0,20,25,30,33,35], YEL_EVENT=[0,10,15,20,23,25], YEL_CHAIN=[0,20,40,60,80,90];
 const BLUE_REL=[[6,0,2,0,0,0],[0,6,0,2,0,0],[0,2,6,0,0,0],[1,0,1,6,0,0],[0,0,0,0,6,5]];
 const SPIRIT_P=[[4,1,4,1,1,4],[1,4,1,4,1,4],[1,4,4,1,1,4],[17,6,17,17,6,17],[4,1,1,1,4,4],[1,1,1,1,1,1],[1,1,1,1,1,1],[1,1,1,1,1,1]];
 const PASSION_END=[0,0,.5,.5,.5,.8,.8,.8,1,1,1,1,1];
@@ -65,8 +65,19 @@ const CARD_EVENTS={
   rnd:[
    {n:'Wonderful New Shoes',ch:[{t:'Lightweight shoes.',e:{s:[5,0,0,0,0],sp:10,bond:5}},{t:'Heavy shoes.',e:{en:-10,s:[0,5,0,0,0],sp:20,bond:5}}]},
    {n:'Reminiscent Clover',ch:[{t:'The final corner.',e:{bond:5,hint:['Corner Adept ○',1]}},{t:'The final straight.',e:{s:[0,0,0,15,0],bond:5}}]}]}};
+/* Conditions (umamusu.wiki "Conditions"). Trigger rates in the engine are estimates. */
+const CONDS={
+ 'Night Owl':{bad:true,d:'Each turn, may lose 10 energy or 1 mood. Cured by the Infirmary or a +70 energy rest.'},
+ 'Skin Outbreak':{bad:true,d:'Each turn, may lose 1 mood. Comes from racing 3+ turns in a row. Cured by the Infirmary.'},
+ 'Practice Poor':{bad:true,d:'Training failure +2%. Comes from failed training. Cured by the Infirmary or Practice Perfect.'},
+ 'Migraine':{bad:true,d:'Mood cannot increase. Cured by the Infirmary.'},
+ 'Slacker':{bad:true,d:'May skip a stat training, wasting the turn. Cured by the Infirmary or training with Reporter Etsuko.'},
+ 'Slow Metabolism':{bad:true,d:'Speed cannot increase. Comes from eating events. Cured by the Infirmary.'},
+ 'Practice Perfect ○':{bad:false,d:'Training failure −2%.'},
+ 'Charming ○':{bad:false,d:'Bond gains with support cards +2.'},
+ 'Hot Topic':{bad:false,d:'Bond gains with Director Akikawa and Reporter Etsuko +40%.'}};
 const TRAINEE_EVENTS=[
- {n:'Bottomless Appetite',ch:[{t:'Let her eat her fill.',e:{en:15}},{t:'Turn the snack run into a jog.',e:{s:[0,5,5,0,0],en:-5}}]},
+ {n:'Bottomless Appetite',ch:[{t:'Let her eat her fill.',e:{en:15,risk:{cond:'Slow Metabolism',p:0.25}}},{t:'Turn the snack run into a jog.',e:{s:[0,5,5,0,0],en:-5}}]},
  {n:'Running Partner Wanted',e:{s:[5,0,0,5,0]}},
  {n:'Study Session',e:{s:[0,0,0,0,8]}},
  {n:'Ashen Determination',e:{s:[0,0,5,5,0],sp:10}},

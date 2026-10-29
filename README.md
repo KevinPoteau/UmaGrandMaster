@@ -6,8 +6,10 @@ Live site: https://kevinpoteau.github.io/UmaGrandMaster/
 
 ## What it covers
 
-- 78-turn career (Junior, Classic, Senior, Finale), Oguri Cap's objective races, summer camps, inheritance.
-- Card placement per turn (Specialty Priority), training gains, energy, failure rate, mood, bonds, hints, friendship training.
+- 78-turn career (Junior, Classic, Senior, Finale), Oguri Cap's objective races, summer camps (with end-of-camp events), New Year resolutions, inheritance.
+- Conditions (Night Owl, Skin Outbreak, Practice Poor, Migraine, Slacker, Slow Metabolism, Practice Perfect, Charming, Hot Topic) and the Infirmary (+20 energy, 85% cure chance).
+- Racing streak penalty: a 3rd consecutive optional race risks −10 to three stats, −1 mood and Skin Outbreak (objective races in 3rd place don't trigger it).
+- Card placement per turn (Specialty Priority), training gains, energy, failure rate, mood, bonds, hints, friendship training, facility levels (4 trainings per level, +2/3 level after each year-end race).
 - Knowledge Fragments and the Knowledge Table, Goddess' Wisdom (Red, Blue, Yellow), goddess levels, year-end races (GUR, WBC, SWBC) and the Grand Masters finale.
 - Ancestors & Guides: first meeting, three-goddess choice, Passion Zone, goddess outings.
 - Card chain events and random events with their real choices.
@@ -17,7 +19,8 @@ Fixed setup: Oguri Cap (original outfit); Kitasan Black SPD, Agnes Tachyon SPD, 
 
 ## Approximations
 
-- Races are always won and give flat rewards (−15 energy each).
+- Races are always won and give flat rewards (−15 energy each, about a G1's cost).
+- Condition trigger rates (sleep deprivation after a poor rest, the racing streak penalty, random conditions, Practice Poor after a failure) are estimates.
 - Event timing, the three-goddess trigger rate (≈40%) and success rolls (60%) are estimates.
 - Events marked ≈ in the UI have guessed effects (Mejiro Ramonu's and Oguri Cap's events are not documented in English).
 - Skills are not bought; hints are listed under Skills.

@@ -11,7 +11,7 @@ function wpick(w){let s=0;for(const x of w)s+=x;let r=rnd()*s;for(let i=0;i<w.le
 let G=null, sel=-1, busy=false, newLogFrom=0;
 function newGame(seed){
   rngState=seed|0;
-  G={seed,turn:0,vital:100,maxVital:100,mood:3,failBias:0,conds:[],sp:120,uniq:1,
+  G={seed,turn:0,vital:100,maxVital:100,mood:3,failBias:0,conds:[],streak:0,sp:120,uniq:1,
      stats:UMA.init.slice(),limits:BASIC_LIMIT.map((b,i)=>b+BLUE_FACTORS[i]*14+ri(20)),
      bond:CARDS.map(c=>c.initJB).concat([0,0]),tcount:[0,0,0,0,0],
      vl:[0,0,0],bottom:[0,0,0,0,0,0,0,0],upper:[0,0,0,0,0,0],wisdom:0,wisActive:false,
@@ -28,11 +28,20 @@ function newGame(seed){
 const isCamp=()=>(G.turn>=36&&G.turn<=39)||(G.turn>=60&&G.turn<=63);
 const isRace=()=>RACES[G.turn]!==undefined;
 const disp=v=>v<=1200?v:1200+Math.floor((v-1200)/2);
-function addStat(i,v){G.stats[i]=Math.max(1,Math.min(G.limits[i],G.stats[i]+v));}
+function addStat(i,v){if(v>0&&i===0&&hasCond('Slow Metabolism'))return;G.stats[i]=Math.max(1,Math.min(G.limits[i],G.stats[i]+v));}
 function addAll(v){for(let i=0;i<5;i++)addStat(i,v);}
 function addVital(v){G.vital=Math.max(0,Math.min(G.maxVital,G.vital+v));}
-function addMood(v){G.mood=Math.max(1,Math.min(5,G.mood+v));}
-function addBond(i,v){G.bond[i]=Math.min(100,G.bond[i]+v);}
+function addMood(v){if(v>0&&hasCond('Migraine'))return;G.mood=Math.max(1,Math.min(5,G.mood+v));}
+function hasCond(n){return G.conds.includes(n);}
+function addCond(n){
+  if(hasCond(n))return false;
+  if(n.startsWith('Practice Perfect'))G.conds=G.conds.filter(c=>c!=='Practice Poor');
+  if(n==='Practice Poor')G.conds=G.conds.filter(c=>!c.startsWith('Practice Perfect'));
+  G.conds.push(n);syncCond();return true;}
+function removeCond(n){G.conds=G.conds.filter(c=>c!==n);syncCond();}
+function syncCond(){G.failBias=(hasCond('Practice Perfect ○')?-2:0)+(hasCond('Practice Poor')?2:0);}
+function badConds(){return G.conds.filter(c=>CONDS[c]&&CONDS[c].bad);}
+function addBond(i,v){if(i<6&&v>0&&hasCond('Charming ○'))v+=2;if(i>=6&&v>0&&hasCond('Hot Topic'))v=Math.round(v*1.4);G.bond[i]=Math.min(100,G.bond[i]+v);}
 function addTC(i,v){G.tcount[i]=Math.min(48,G.tcount[i]+v);}
 function tLevel(i){if(G.wisActive&&G.wisdom===1)return 5;if(isCamp())return 4;return Math.min(4,Math.floor(G.tcount[i]/12));}
 function dateLabel(t){
@@ -131,8 +140,7 @@ function addSpirit(s){
   if(s>32){addSpirit(s%32);addSpirit(s%32);return;}
   let place=G.bottom.indexOf(0);if(place===-1)return;
   G.bottom[place]=s;
-  const type=s%8-1;if(type>=0&&type<5)addTC(type,1);
-  if(place%2===1){
+    if(place%2===1){
     const sL=G.bottom[place-1];let ty=sL%8;if(ri(5)===0)ty=s%8;
     const sU=ty+8*Math.floor(sL/8),l2=place>>1;G.upper[l2]=sU;
     if(l2%2===1){const sL2=G.upper[l2-1];let ty2=sL2%8;if(ri(5)===0)ty2=sU%8;G.upper[4+(l2>>1)]=ty2+8*Math.floor(sL2/8);}
@@ -168,6 +176,7 @@ function effText(e,mult){
   if(e.bond)p.push('bond +'+e.bond);
   if(e.hint)p.push(e.hint[0]+' hint +'+e.hint[1]);
   if(e.cond)p.push(e.cond);
+  if(e.risk)p.push('may cause '+e.risk.cond);
   return p.join(', ');}
 function applyEff(e,card,mult){
   if(!e)return;mult=mult||1;
@@ -176,7 +185,8 @@ function applyEff(e,card,mult){
   if(e.en)addVital(e.en);if(e.mood)addMood(e.mood);
   if(e.bond&&card!=null)addBond(card,e.bond);
   if(e.hint)G.hints.push(e.hint[0]+' Lv'+e.hint[1]);
-  if(e.cond&&!G.conds.includes(e.cond)){G.conds.push(e.cond);if(e.cond.startsWith('Practice Perfect'))G.failBias=-2;}}
+  if(e.cond)addCond(e.cond);
+  if(e.risk&&rb(e.risk.p)&&addCond(e.risk.cond))log('bad','Condition · '+e.risk.cond,CONDS[e.risk.cond].d);}
 async function runEvent(ev,card,src,kind){
   const mult=card!=null&&card>0?1+0.01*YEL_EVENT[G.vl[2]]:1;
   let parts=[];
@@ -210,7 +220,14 @@ async function act(kind,arg){
 }
 function applyAction(kind,arg){
   const T=G.turn;
+  if(kind!=='race'&&kind!=='free')G.streak=0;
+  if(kind==='inf'){
+    addVital(20);const cured=[],kept=[];
+    for(const c of badConds()){if(rb(0.85)){removeCond(c);cured.push(c);}else kept.push(c);}
+    log('scen','Infirmary','+20 energy.'+(cured.length?' Cured: '+cured.join(', ')+'.':'')+(kept.length?' Not cured: '+kept.join(', ')+'.':''));
+    return true;}
   if(kind==='race'){
+    G.streak++;
     addVital(-15);
     if(T!==TOTAL-1){runRace(3,45);}
     addBond(6,4);
@@ -219,21 +236,29 @@ function applyAction(kind,arg){
     return true;}
   if(kind==='rest'){
     if(isCamp()){addVital(40);addMood(1);log('scen','Summer camp rest','+40 energy, +1 mood.');}
-    else{const r=ri(100),v=r<25?70:r<82?50:30;addVital(v);log('scen','Rest','+'+v+' energy.');}
+    else{const r=ri(100),v=r<25?70:r<82?50:30;addVital(v);
+      if(v===70&&hasCond('Night Owl')){removeCond('Night Owl');log('scen','Rest · Slept like a log','+70 energy. Night Owl cured.');}
+      else if(v===30&&rb(0.3)&&addCond('Night Owl'))log('bad','Rest · Sleep deprived','+30 energy only, and Night Owl.');
+      else log('scen','Rest','+'+v+' energy.');}
     addSpirit(G.frag[5]);return true;}
   if(kind==='free'){
+    const third=G.streak>=2;G.streak++;
     addVital(-15);runRace(2,40);addSpirit(G.frag[7]);
-    log('race','Optional race · 1st','Small stat and SP reward. −15 energy.');return true;}
+    log('race','Optional race · 1st','Small stat and SP reward. −15 energy.');
+    if(third&&rb(0.5)){const idx=[0,1,2,3,4].sort(()=>rnd()-0.5).slice(0,3);idx.forEach(i=>addStat(i,-10));addMood(-1);addCond('Skin Outbreak');
+      log('bad','Too many races in a row','−10 '+idx.map(i=>STAT[i]).join(', ')+', −1 mood, Skin Outbreak.',true);}
+    return true;}
   if(kind==='out'){
     if(arg===5){if(rb(.5)){addMood(2);log('scen','Recreation','+2 mood.');}else{addMood(1);addVital(10);log('scen','Recreation','+1 mood, +10 energy.');}}
     else{G.gc.used[arg]=true;OUTINGS[arg].f();log('scen',OUTINGS[arg].n,OUTINGS[arg].d+'. Bond +5.');}
     addSpirit(G.frag[6]);return true;}
   if(kind==='train'){
     const t=arg,name=STAT[t];
+    if(hasCond('Slacker')&&rb(0.3)){log('bad','Slacker · Skipped training','Oguri Cap slacked off: the turn is wasted.',true);return true;}
     if(rnd()*100<G.fr[t]){
-      if(G.fr[t]>=20&&rnd()*100<G.fr[t]){addStat(t,-10);if(G.stats[t]>1200)addStat(t,-10);for(let i=0;i<5;i++){addStat(i,-4);if(G.stats[i]>1200)addStat(i,-4);}addMood(-3);addVital(10);
-        log('bad','Training failed badly · '+name,'−10 '+name+', −4 all stats, −3 mood.');}
-      else{addStat(t,-5);if(G.stats[t]>1200)addStat(t,-5);addMood(-1);log('bad','Training failed · '+name,'−5 '+name+', −1 mood.');}
+      if(G.fr[t]>=20&&rnd()*100<G.fr[t]){addStat(t,-10);if(G.stats[t]>1200)addStat(t,-10);for(let i=0;i<5;i++){addStat(i,-4);if(G.stats[i]>1200)addStat(i,-4);}addMood(-3);addVital(10);const pp=rb(0.5)&&addCond('Practice Poor');
+        log('bad','Training failed badly · '+name,'−10 '+name+', −4 all stats, −3 mood.'+(pp?' Practice Poor.':''));}
+      else{addStat(t,-5);if(G.stats[t]>1200)addStat(t,-5);addMood(-1);const pp=rb(0.2)&&addCond('Practice Poor');log('bad','Training failed · '+name,'−5 '+name+', −1 mood.'+(pp?' Practice Poor.':''));}
       return true;}
     const tv=G.tv[t],before=G.stats.map(disp);
     for(let i=0;i<5;i++)addStat(i,tv[i]);G.sp+=tv[5];addVital(tv[6]);
@@ -251,7 +276,8 @@ function applyAction(kind,arg){
       if(!G.gc.first){G.gc.first=true;addAll(3);addVital(10);addBond(0,10);log('scen','Ancestors & Guides · First meeting','+3 all stats, +10 energy, bond +10.');}
       else{let p=G.gc.passion?1:(G.wisActive&&G.wisdom===2)?1:0.4*(1+0.01*BLUE_HINT[G.vl[1]]);three=rb(p);}
     }
-    if(!isCamp())addTC(t,2);
+    if(!isCamp())addTC(t,3);
+    if(G.dist[t][7]&&hasCond('Slacker')){removeCond('Slacker');log('scen','Reporter Etsuko · Back on track','Slacker cured.');}
     return {three};}
   return false;}
 function threeChoices(col){
@@ -274,13 +300,16 @@ async function afterTurn(){
     log('scen','Ancestors & Guides · Learning from the Three Goddesses','Goddess outings unlocked. +6 all stats, +12 SP, bond +5. Passion Zone active.');}
   if(G.gc.passion){if(rb(PASSION_END[G.gc.pturns])){G.gc.passion=false;G.gc.pturns=0;log('scen','Passion Zone ends','Ancestors & Guides no longer triggers friendship.');}else G.gc.pturns++;}
   if(T===23){yearRace('GUR',1,10,50,2);addTCAll();
-    const c=await ask('Scenario','Year-end reflection','Junior year is over. How do you spend the holiday?',[{t:'Recover',d:'+20 energy'},{t:'Keep sharp',d:'+5 all stats'}]);
-    if(c===0)addVital(20);else addAll(5);log('scen','Year-end reflection',c===0?'+20 energy.':'+5 all stats.');
+    const c=await ask('Scenario','New Year resolutions','A new year begins. What is Oguri Cap\'s resolution?',[{t:'Get even faster',d:'+10 Speed'},{t:'Rest up for the year',d:'+20 energy'},{t:'Study the races',d:'+20 SP'}]);
+    if(c===0)addStat(0,10);else if(c===1)addVital(20);else G.sp+=20;log('scen','New Year resolutions',['+10 Speed.','+20 energy.','+20 SP.'][c]);
     if(G.gc.unlocked){addVital(19);G.sp+=86;addBond(0,5);log('scen','Ancestors & Guides · The goddesses take a break','+19 energy, +86 SP, bond +5.');}}
   else if(T===29){inherit('Classic');}
   else if(T===47){yearRace('WBC',2,15,60,4);addTCAll();
-    const c=await ask('Scenario','Year-end reflection','Classic year is over. How do you spend the holiday?',[{t:'Recover',d:'+30 energy'},{t:'Keep sharp',d:'+8 all stats'}]);
-    if(c===0)addVital(30);else addAll(8);log('scen','Year-end reflection',c===0?'+30 energy.':'+8 all stats.');}
+    const c=await ask('Scenario','New Year resolutions','The final year begins. What is Oguri Cap\'s resolution?',[{t:'Rest up for the year',d:'+30 energy'},{t:'Train everything',d:'+5 all stats'},{t:'Study the races',d:'+35 SP'}]);
+    if(c===0)addVital(30);else if(c===1)addAll(5);else G.sp+=35;log('scen','New Year resolutions',['+30 energy.','+5 all stats.','+35 SP.'][c]);}
+  else if(T===39){const c=await ask('Scenario','End of summer camp','The first summer camp is over. What did it build?',[{t:'Raw power',d:'+10 Power'},{t:'Grit',d:'+10 Guts'}]);
+    addStat(c===0?2:3,10);log('scen','End of summer camp',c===0?'+10 Power.':'+10 Guts.');}
+  else if(T===63){const idx=[0,1,2,3,4].sort(()=>rnd()-0.5).slice(0,3);idx.forEach(i=>addStat(i,5));log('scen','End of summer camp','+5 '+idx.map(i=>STAT[i]).join(', ')+'.');}
   else if(T===48){const r=ri(100);
     if(r<16){addVital(30);addAll(10);addMood(2);log('scen','New Year lottery · Hot spring ticket','+30 energy, +10 all stats, +2 mood.');}
     else if(r<43){addVital(20);addAll(5);addMood(1);log('scen','New Year lottery · 2nd prize','+20 energy, +5 all stats, +1 mood.');}
@@ -318,6 +347,13 @@ async function afterTurn(){
     if(rb(0.15)){const ev=TRAINEE_EVENTS[ri(TRAINEE_EVENTS.length)];await runEvent(Object.assign({approx:true},ev),null,'Oguri Cap','card');}
     if(rb(0.10)){addVital(10);log('card','Oguri Cap · A good night\'s sleep','+10 energy.');}
     if(rb(0.02)){addMood(1);log('card','Oguri Cap · Good news','+1 mood.');}
+    if(hasCond('Night Owl')&&rb(0.25)){if(rb(0.5)){addVital(-10);log('bad','Night Owl','Stayed up late: −10 energy.',true);}else{addMood(-1);log('bad','Night Owl','Stayed up late: −1 mood.',true);}}
+    if(hasCond('Skin Outbreak')&&rb(0.25)){addMood(-1);log('bad','Skin Outbreak','−1 mood.',true);}
+    const roll=rnd();
+    if(roll<0.012&&addCond('Migraine'))log('bad','Oguri Cap · Migraine blues','Migraine: mood cannot increase until cured.',true);
+    else if(roll<0.024&&addCond('Slacker'))log('bad','Oguri Cap · Slacking off','Slacker: she may skip training.',true);
+    else if(roll<0.036&&addCond('Charming ○'))log('card','Oguri Cap · Everyone\'s favourite','Charming ○: bond gains +2.',true);
+    else if(roll<0.044&&addCond('Hot Topic'))log('card','Oguri Cap · Talk of the town','Hot Topic: Director and Reporter bond gains +40%.',true);
     if(rb(0.04)){addMood(-1);log('bad','Oguri Cap · Off day','−1 mood.');}
   }
 }

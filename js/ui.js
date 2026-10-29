@@ -10,6 +10,7 @@ function grade(v){const T=[[1200,'UG'],[1100,'SS+'],[1000,'SS'],[900,'S+'],[800,
 function gradeCls(g){return 'g-'+g.replace('+','');}
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 const $=id=>document.getElementById(id);
+const ord=n=>n+(n%10===1&&n!==11?'st':n%10===2&&n!==12?'nd':n%10===3&&n!==13?'rd':'th');
 const sideOn=()=>!$('side').hidden;
 
 /* ---------- modal ---------- */
@@ -32,7 +33,7 @@ const HELP=`<div class="help">
 <h4>Turn flow</h4><p>78 turns: three years of 24 half-months, then 6 finale turns ending with the Grand Masters race. Each turn the cards scatter over the five facilities; each card favours its own type.</p>
 <h4>Training</h4><p>Tap <b>Training</b>, tap a facility to preview its cards and gains, tap it again to train.</p>
 <h4>Scenario</h4><p>Collect Knowledge Fragments, fill the table, obtain a Goddess' Wisdom, level up the three goddesses. Tap any <b>?</b> for a short explanation, and follow the tips panel.</p>
-<h4>Approximations</h4><p>Races are always won and give flat rewards (−15 energy each). Event timing, the three-goddess trigger rate (≈40%) and success rolls (60%) are estimates. Events marked ≈ have guessed effects (Mejiro Ramonu and Oguri Cap events are not documented in English). Skills are not bought. No game artwork is used. Logic adapted from the open-source UmaAi simulator (MIT); data from GameTora and umamusu.wiki.</p></div>`;
+<h4>Approximations</h4><p>Races are always won and give flat rewards (−15 energy each). Condition trigger rates (sleep deprivation, racing streak penalty, random conditions) are estimates; the Infirmary uses the documented 85% cure rate. Event timing, the three-goddess trigger rate (≈40%) and success rolls (60%) are estimates. Events marked ≈ have guessed effects (Mejiro Ramonu and Oguri Cap events are not documented in English). Skills are not bought. No game artwork is used. Logic adapted from the open-source UmaAi simulator (MIT); data from GameTora and umamusu.wiki.</p></div>`;
 function deckModal(){
   const rows=CARDS.map((c,i)=>{
     const right=i===0?(G.gc.unlocked?'Outings '+G.gc.used.filter(Boolean).length+'/5':G.gc.first?'Outings locked':'Not met yet'):'Chain '+'●'.repeat(G.chain[i])+'○'.repeat(3-G.chain[i]);
@@ -74,6 +75,8 @@ function tips(){
     else if(filled>=6){const p=predictWisdom();if(p>=0)T.push({c:['r','b','y'][p],h:(8-filled)+' fragment'+(filled<7?'s':'')+' to Wisdom',t:'It will be '+COL[p]+' ('+GOD[p]+').'});}
   }
   if(!race&&G.vital<50)T.push({c:'w',h:'Energy '+G.vital,t:'Failure risk rises below about 60. Rest, Wit training'+(G.wisdom===1&&!G.wisActive?', or the Red Wisdom':'')+'.'});
+  const bc=badConds();if(bc.length&&!race)T.push({c:'w',h:bc.join(', '),t:'Infirmary: +20 energy and an 85% cure chance per condition (uses the turn).'});
+  if(!race&&G.streak>=2&&G.turn>12&&G.turn<72)T.push({c:'w',h:'Racing streak',t:'Another optional race would be the '+ord(G.streak+1)+' in a row: risk of −10 to 3 stats, −1 mood and Skin Outbreak.'});
   if(G.mood<=2)T.push({c:'w',h:'Mood '+MOODS[G.mood],t:'Training gains −'+(3-G.mood)*10+'%. Recreation raises mood.'});
   if(!race&&!G.gc.first&&G.turn>=2){const f=[0,1,2,3,4].find(t=>G.dist[t][0]);if(f!==undefined)T.push({c:'p',h:'Ancestors & Guides on '+STAT[f],t:'First training with it: +3 all stats, +10 energy, and it starts the goddess events.'});}
   if(G.gc.passion)T.push({c:'g',h:'Passion Zone',t:'Ancestors & Guides gives friendship anywhere and always triggers the goddess choice.'});
@@ -85,7 +88,7 @@ function tips(){
   if(G.turn<30&&!race){const low=[1,2,3,4,5].filter(i=>G.bond[i]<80);if(low.length&&T.length<4)T.push({c:'p',h:'Build bonds',t:'Friendship needs bond 80 (orange gauge). Still below: '+low.map(i=>CARDS[i].ab).join(', ')+'.'});}
   return T.slice(0,5);}
 function tipsHTML(){return tips().map(x=>'<div class="tip '+x.c+'"><b>'+x.h+'.</b> '+x.t+'</div>').join('');}
-const CAL_EVENTS={23:'GUR (year-end race)',29:'Inheritance',47:'WBC (year-end race)',48:'New Year lottery',53:'Inheritance · Director check',71:'SWBC (year-end race)',76:'Goddess choice',77:'Grand Masters'};
+const CAL_EVENTS={23:'GUR (year-end race) · New Year',39:'End of summer camp event',63:'End of summer camp event',29:'Inheritance',47:'WBC (year-end race) · New Year',48:'New Year lottery',53:'Inheritance · Director check',71:'SWBC (year-end race)',76:'Goddess choice',77:'Grand Masters'};
 function calHTML(){
   const cell=t=>{let c='cc';const ev=[];
     if((t>=36&&t<=39)||(t>=60&&t<=63)){c+=' camp';ev.push('Summer camp');}
@@ -127,6 +130,7 @@ function helpContent(k){
   if(k==='passion')return {t:'Passion Zone',h:'<ul><li>Ancestors & Guides gives <b>friendship on any facility</b>.</li><li>Training with it <b>always</b> triggers the goddess choice, with extra SP.</li><li>Lit by unlocking outings, outing 5 and goddess choices; fades after 2+ turns.</li></ul>'};
   if(k==='friendship')return {t:'Friendship training',h:'<ul><li><b>Rainbow ring ★</b> = a card is ready for friendship there.</li><li>Type cards: bond <b>80+</b> (orange gauge) on their own facility.</li><li>Ancestors & Guides: only during Passion Zone.</li><li>Yellow Wisdom: every card, every facility.</li><li>Bigger gains, 2 fragments; Wit friendship restores energy.</li></ul>'};
   if(k==='calendar')return {t:'Career calendar',h:'<ul><li>One square = one turn (half a month). Outlined = now.</li><li><b style="color:var(--purple)">●</b> objective race · <b style="color:var(--gold)">■</b> GUR / WBC / SWBC · <b style="color:var(--blue)">●</b> inheritance · red squares = summer camp.</li><li>Finale: 5 training turns, then Grand Masters.</li></ul>'};
+  if(k==='conds')return {t:'Conditions',h:'<ul>'+Object.keys(CONDS).map(c=>'<li'+(hasCond(c)?'':' style="opacity:.6"')+'><b style="color:'+(CONDS[c].bad?'#ff8a8a':'var(--accent)')+'">'+esc(c)+'</b>: '+esc(CONDS[c].d)+'</li>').join('')+'<li><b>Infirmary</b>: +20 energy, 85% cure chance per bad condition, uses the turn.</li></ul>'};
   if(k==='outing')return {t:'Goddess outings',h:'<ul><li>Unlocked at random after meeting Ancestors & Guides.</li><li>Darley, Godolphin, Byerley first (any order), then A&G I, then A&G II.</li><li>Each: big energy, +1 mood, stats or SP. A&G II lights the Passion Zone.</li></ul>'};
   return null;}
 
@@ -170,6 +174,7 @@ function render(){
   if(race)b+='<span class="bd race">Race day</span>';
   if(camp)b+='<span class="bd camp">Summer camp · Lv5</span>';
   if(G.gc.passion)b+='<button type="button" class="bd passion" data-help="passion">Passion Zone <span class="qm" aria-hidden="true">?</span></button>';
+  G.conds.forEach(c=>{b+='<button type="button" class="bd cond '+(CONDS[c]&&CONDS[c].bad?'bad':'good')+'" data-help="conds">'+esc(c)+'</button>';});
   $('badges').innerHTML=b;
   $('uniq').textContent='Unique skill Lv'+G.uniq+' · '+G.sp+' SP';
   if(sideOn()){const lastEv=G.log.slice(newLogFrom);$('last').innerHTML='<div class="lt">LAST TURN</div>'+esc((lastEv.length?lastEv:G.log.slice(-1)).map(e=>e.title).join(' · '));}
@@ -197,15 +202,15 @@ function render(){
     $('bBack').addEventListener('click',()=>{view='home';sel=-1;render();});
     if($('bGo'))$('bGo').addEventListener('click',()=>doTrain(sel));
   }else{
-    const canRace=!race&&G.turn>12&&G.turn<72&&!camp;
+    const canRace=!race&&G.turn>12&&G.turn<72;
     bt.innerHTML='<div class="home">'+
       '<button type="button" class="hb" data-a="rest" '+(lock||race?'disabled':'')+'>'+(camp?'Rest &amp;<br>Recreation':'Rest')+'<small>'+(camp?'+40 energy, +1 mood':'+30 to +70 energy')+'</small><span class="fr">'+fragGem(G.frag[5])+'</span></button>'+
       (race?'<button type="button" class="hb train race-day" data-a="race" '+(lock?'disabled':'')+'>Race!<small>'+esc(RACES[G.turn])+'</small></button>'
            :'<button type="button" class="hb train" data-a="train" '+(lock?'disabled':'')+'>Training<small>'+(G.ended?'Career complete':'Choose a facility')+'</small>'+(!G.ended&&[0,1,2,3,4].some(t=>friendCount(t))?'<span class="fbadge">★ Friendship</span>':'')+'</button>')+
       '<button type="button" class="hb" data-a="skills">Skills<small>'+G.sp+' SP · '+(G.hints.length+G.trainHints)+' hints</small></button>'+
-      '<button type="button" class="hb" data-a="inf" disabled>Infirmary<small>No condition</small></button>'+
+      '<button type="button" class="hb'+(badConds().length?' sick':'')+'" data-a="inf" '+(lock||race||!badConds().length?'disabled':'')+'>Infirmary<small>'+(badConds().length?esc(badConds().join(', '))+' · +20 energy':'No condition')+'</small></button>'+
       '<button type="button" class="hb" data-a="out" '+(lock||race||camp?'disabled':'')+'>'+goutBadge()+'Recreation<small>'+(camp?'Not at camp':G.gc.unlocked?'Goddess outings':'Mood up')+'</small><span class="fr">'+fragGem(G.frag[6])+'</span></button>'+
-      '<button type="button" class="hb" data-a="free" '+(lock||!canRace?'disabled':'')+'>Races<small>'+(canRace?'Optional G1, −15 energy':'Unavailable')+'</small><span class="fr">'+fragGem(G.frag[7])+'</span></button></div>';
+      '<button type="button" class="hb'+(canRace&&G.streak>=2?' risky':'')+'" data-a="free" '+(lock||!canRace?'disabled':'')+'>Races<small>'+(canRace?(G.streak>=2?'⚠ '+ord(G.streak+1)+' race in a row':'Optional race, −15 energy'):'Unavailable')+'</small><span class="fr">'+fragGem(G.frag[7])+'</span></button></div>';
     bt.querySelectorAll('.hb').forEach(x=>x.addEventListener('click',()=>homeAction(x.dataset.a)));
   }
   renderSide();
@@ -222,6 +227,7 @@ function endModal(){
 async function homeAction(a){
   closePop();
   if(a==='skills')return skillsModal();
+  if(a==='inf'){if(!busy&&!G.ended)act('inf');return;}
   if(busy||G.ended)return;
   if(a==='train'){view='train';sel=-1;return render();}
   if(a==='out'){

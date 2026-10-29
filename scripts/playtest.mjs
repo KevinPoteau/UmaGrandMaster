@@ -23,7 +23,11 @@ for (let run = 0; run < careers; run++) {
     if (st.modal) { await page.click('#modalRoot .choice'); continue; }
     if (st.wis && !st.active) { await page.click('#bWis'); continue; }
     if (await page.$('[data-a=race]')) { await page.click('[data-a=race]'); continue; }
-    if (st.view === 'home') { await page.click(st.energy < 45 ? '[data-a=rest]' : '[data-a=train]'); continue; }
+    if (st.view === 'home') {
+      if (await page.$('[data-a=inf]:not([disabled])') && st.energy < 70) { await page.click('[data-a=inf]'); continue; }
+      if (step % 9 === 0 && await page.$('[data-a=free]:not([disabled])')) { await page.click('[data-a=free]'); continue; }
+      await page.click(st.energy < 45 ? '[data-a=rest]' : '[data-a=train]'); continue;
+    }
     let best = 0, score = -1;
     for (let t = 0; t < 5; t++) {
       const s = st.tv[t].slice(0, 6).reduce((a, x) => a + x, 0) - st.fr[t] * 3;
@@ -34,7 +38,7 @@ for (let run = 0; run < careers; run++) {
   }
   const r = await page.evaluate(() => {
     const G = __sim.G, d = v => v <= 1200 ? v : 1200 + Math.floor((v - 1200) / 2);
-    return { turn: G.turn, rating: G.final, stats: G.stats.map(d), sp: G.sp, goddessLevels: G.vl };
+    return { turn: G.turn, rating: G.final, stats: G.stats.map(d), sp: G.sp, goddessLevels: G.vl, conds: G.conds, facilityLv: G.tcount.map(c => Math.min(5, Math.floor(c / 12) + 1)) };
   });
   console.log(`career ${run + 1}:`, JSON.stringify(r));
 }
